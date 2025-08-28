@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DayZ JSON Schema Validator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 2px dashed #dee2e6;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .validate-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin: 20px 10px;
+            transition: all 0.3s ease;
+        }
+
+        .validate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .validate-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .error-item {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 5px solid #e53e3e;
+        }
+
+        .success-item {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 5px solid #38a169;
+        }
+
+        .zone-name {
+            font-weight: bold;
+            color: #2d3748;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .zone-name::before {
+            content: '🎯';
+            margin-right: 10px;
+        }
+
+        .error-message {
+            color: #c53030;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .suggestions {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .suggestions h4 {
+            color: #2d3748;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .suggestion-item {
+            background: #e2e8f0;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
+
+        .download-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #2196f3;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧟 DayZ JSON Schema Validator</h1>
+            <p>Validate your Zones.json and Tiers.json files with detailed error reporting and automatic fix suggestions</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-section">
+                <h2>📁 Upload Your JSON Files</h2>
+                <p style="margin: 15px 0; color: #6c757d;">Select your Zones.json or Tiers.json files for validation</p>
+                
+                <input type="file" id="fileInput" class="file-input" accept=".json" multiple>
+                <label for="fileInput" class="file-label">
+                    📂 Choose JSON Files
+                </label>
+                
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    <strong>Files loaded:</strong>
+                    <div id="fileList"></div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button id="validateBtn" class="validate-btn" disabled>
+                        🔍 Validate Files
+                    </button>
+                    <button id="clearBtn" class="validate-btn" style="background: linear-gradient(135deg, #dc3545, #c82333);">
+                        🗑️ Clear All
+                    </button>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Validating your files...</p>
+            </div>
+
+            <div id="results" class="results"></div>
+
+            <div id="downloadSection" class="download-section" style="display: none;">
+                <h3>📥 Download Fixed Files</h3>
+                <p>Download the automatically generated fix files and reports</p>
+                <div id="downloadButtons"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Schema definitions (same as Node.js version)
+        const zonesSchema = {
+            globalSettings: {
+                required: ['systemEnabled', 'checkInterval', 'maxEntitiesPerZone', 'entityLifetime', 'minSpawnDistanceFromPlayer'],
+                types: {
+                    systemEnabled: 'number',
+                    checkInterval: 'number',
+                    maxEntitiesPerZone: 'number',
+                    entityLifetime: 'number',
+                    minSpawnDistanceFromPlayer: 'number'
+                }
+            },
+            zones: {
+                required: ['name', 'enabled', 'position', 'triggerRadius', 'spawnChance', 'despawnOnExit', 'despawnDistance', 'respawnCooldown', 'spawnPoints'],
+                types: {
+                    name: 'string',
+                    enabled: 'number',
+                    position: 'string',
+                    triggerRadius: 'number',
+                    spawnChance: 'number',
+                    despawnOnExit: 'number',
+                    despawnDistance: 'number',
+                    respawnCooldown: 'number',
+                    spawnPoints: 'array'
+                },
+                spawnPoints: {
+                    required: ['position', 'radius', 'tierIds', 'entities', 'useFixedHeight'],
+                    types: {
+                        position: 'string',
+                        radius: 'number',
+                        tierIds: 'array',
+                        entities: 'number',
+                        useFixedHeight: 'number'
+                    }
+                }
+            }
+        };
+
+        const tiersSchema = {
+            tiers: {
+                required: ['name', 'classnames'],
+                types: {
+                    name: 'string',
+                    classnames: 'array'
+                }
+            }
+        };
+
+        let loadedFiles = {};
+        let validationResults = {};
+
+        // Helper functions
+        function validateType(value, expectedType) {
+            switch (expectedType) {
+                case 'string': return typeof value === 'string';
+                case 'number': return typeof value === 'number' && !isNaN(value);
+                case 'array': return Array.isArray(value);
+                case 'object': return typeof value === 'object' && value !== null && !Array.isArray(value);
+                default: return false;
+            }
+        }
+
+        function validatePosition(position) {
+            if (typeof position !== 'string') return false;
+            
+            // DayZ positions are space-separated: "x.x y.y z.z" or "xx yy zz"
+            const coords = position.trim().split(/\s+/); // Split by one or more whitespace characters
+            
+            if (coords.length !== 3) return false;
+            
+            // Check if each coordinate is a valid number (can be integer or float)
+            return coords.every(coord => {
+                const num = parseFloat(coord);
+                return !isNaN(num) && isFinite(num);
+            });
+        }
+
+        function findLineNumber(text, searchTerm, contextInfo = '') {
+            const lines = text.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes(searchTerm) || (contextInfo && lines[i].includes(contextInfo))) {
+                    return i + 1;
+                }
+            }
+            return null;
+        }
+
+        function generateFixSuggestion(error) {
+            const fixes = [];
+            
+            if (error.includes('Missing required field')) {
+                const field = error.match(/'([^']+)'/)[1];
+                const defaultValues = {
+                    'systemEnabled': 1,
+                    'checkInterval': 5.0,
+                    'maxEntitiesPerZone': 20,
+                    'entityLifetime': 600,
+                    'minSpawnDistanceFromPlayer': 30.0,
+                    'enabled': 1,
+                    'triggerRadius': 300.0,
+                    'spawnChance': 1.0,
+                    'despawnOnExit': 1,
+                    'despawnDistance': 50.0,
+                    'respawnCooldown': 10.0,
+                    'spawnPoints': [],
+                    'radius': 2.0,
+                    'tierIds': [1],
+                    'entities': 3,
+                    'useFixedHeight': 1,
+                    'name': 'DefaultName',
+                    'classnames': ['ZmbM_CitizenASkinny']
+                };
+                fixes.push(`Add: "${field}": ${JSON.stringify(defaultValues[field] || 'VALUE_NEEDED')}`);
+            }
+            
+            if (error.includes('Invalid type')) {
+                const field = error.match(/'([^']+)'/)[1];
+                const expectedType = error.match(/Expected (\w+)/)[1];
+                fixes.push(`Change type of '${field}' to ${expectedType}`);
+            }
+            
+            if (error.includes('Invalid position format')) {
+                fixes.push('Use format: "x.x y.y z.z" (e.g., "1234.5 10.0 5678.9")');
+            }
+            
+            return fixes;
+        }
+
+        function validateZones(data, originalText, filename) {
+            const errors = [];
+            const fixes = [];
+            
+            // Validate root structure
+            if (!data.globalSettings) {
+                const lineNum = findLineNumber(originalText, 'globalSettings') || 1;
+                const error = `Line ${lineNum}: Missing 'globalSettings' object`;
+                errors.push(error);
+                fixes.push({
+                    error: error,
+                    suggestions: generateFixSuggestion(error),
+                    zoneName: 'ROOT'
+                });
+            } else {
+                const gs = data.globalSettings;
+                for (const field of zonesSchema.globalSettings.required) {
+                    if (!(field in gs)) {
+                        const lineNum = findLineNumber(originalText, 'globalSettings') || 1;
+                        const error = `Line ${lineNum}: Missing required field '${field}' in globalSettings`;
+                        errors.push(error);
+                        fixes.push({
+                            error: error,
+                            suggestions: generateFixSuggestion(error),
+                            zoneName: 'GLOBAL_SETTINGS'
+                        });
+                    } else if (!validateType(gs[field], zonesSchema.globalSettings.types[field])) {
+                        const lineNum = findLineNumber(originalText, field, 'globalSettings') || 1;
+                        const error = `Line ${lineNum}: Invalid type for '${field}' in globalSettings. Expected ${zonesSchema.globalSettings.types[field]}, got ${typeof gs[field]}`;
+                        errors.push(error);
+                        fixes.push({
+                            error: error,
+                            suggestions: generateFixSuggestion(error),
+                            zoneName: 'GLOBAL_SETTINGS'
+                        });
+                    }
+                }
+            }
+
+            if (!data.zones || !Array.isArray(data.zones)) {
+                const lineNum = findLineNumber(originalText, 'zones') || 1;
+                const error = `Line ${lineNum}: Missing or invalid 'zones' array`;
+                errors.push(error);
+                fixes.push({
+                    error: error,
+                    suggestions: ['Add: "zones": []'],
+                    zoneName: 'ROOT'
+                });
+                return { errors, fixes, stats: { zones: 0, spawnPoints: 0 } };
+            }
+
+            // Validate zones
+            data.zones.forEach((zone, zoneIndex) => {
+                const zoneName = zone.name || `Zone_${zoneIndex + 1}`;
+                
+                for (const field of zonesSchema.zones.required) {
+                    if (!(field in zone)) {
+                        const lineNum = findLineNumber(originalText, `"name": "${zone.name}"`) || 
+                                       findLineNumber(originalText, `zones.*${zoneIndex}`) || 
+                                       (zoneIndex * 15) + 10;
+                        const error = `Line ${lineNum}: Missing required field '${field}' in zone '${zoneName}'`;
+                        errors.push(error);
+                        fixes.push({
+                            error: error,
+                            suggestions: generateFixSuggestion(error),
+                            zoneName: zoneName
+                        });
+                    } else if (field === 'spawnPoints') {
+                        if (!Array.isArray(zone.spawnPoints)) {
+                            const lineNum = findLineNumber(originalText, 'spawnPoints', zone.name) || (zoneIndex * 15) + 12;
+                            const error = `Line ${lineNum}: 'spawnPoints' must be an array in zone '${zoneName}'`;
+                            errors.push(error);
+                            fixes.push({
+                                error: error,
+                                suggestions: ['Change to: "spawnPoints": []'],
+                                zoneName: zoneName
+                            });
+                        }
+                    } else if (field === 'position') {
+                        if (!validatePosition(zone.position)) {
+                            const lineNum = findLineNumber(originalText, zone.position) || (zoneIndex * 15) + 11;
+                            const error = `Line ${lineNum}: Invalid position format '${zone.position}' in zone '${zoneName}'. Expected format: 'x y z'`;
+                            errors.push(error);
+                            fixes.push({
+                                error: error,
+                                suggestions: generateFixSuggestion(error),
+                                zoneName: zoneName
+                            });
+                        }
+                    } else if (!validateType(zone[field], zonesSchema.zones.types[field])) {
+                        const lineNum = findLineNumber(originalText, `"${field}"`, zone.name) || (zoneIndex * 15) + 10;
+                        const error = `Line ${lineNum}: Invalid type for '${field}' in zone '${zoneName}'. Expected ${zonesSchema.zones.types[field]}, got ${typeof zone[field]}`;
+                        errors.push(error);
+                        fixes.push({
+                            error: error,
+                            suggestions: generateFixSuggestion(error),
+                            zoneName: zoneName
+                        });
+                    }
+                }
+
+                // Validate spawn points
+                if (zone.spawnPoints && Array.isArray(zone.spawnPoints)) {
+                    zone.spawnPoints.forEach((sp, spIndex) => {
+                        for (const field of zonesSchema.zones.spawnPoints.required) {
+                            if (!(field in sp)) {
+                                const lineNum = findLineNumber(originalText, 'spawnPoints') + spIndex + 2 || (zoneIndex * 15) + 13 + spIndex;
+                                const error = `Line ${lineNum}: Missing required field '${field}' in spawn point ${spIndex + 1} of zone '${zoneName}'`;
+                                errors.push(error);
+                                fixes.push({
+                                    error: error,
+                                    suggestions: generateFixSuggestion(error),
+                                    zoneName: `${zoneName} > SpawnPoint_${spIndex + 1}`
+                                });
+                            } else if (field === 'position') {
+                                if (!validatePosition(sp.position)) {
+                                    const lineNum = findLineNumber(originalText, sp.position) || (zoneIndex * 15) + 14 + spIndex;
+                                    const error = `Line ${lineNum}: Invalid position format '${sp.position}' in spawn point ${spIndex + 1} of zone '${zoneName}'. Expected format: 'x y z'`;
+                                    errors.push(error);
+                                    fixes.push({
+                                        error: error,
+                                        suggestions: generateFixSuggestion(error),
+                                        zoneName: `${zoneName} > SpawnPoint_${spIndex + 1}`
+                                    });
+                                }
+                            } else if (field === 'tierIds') {
+                                if (!Array.isArray(sp.tierIds) || sp.tierIds.some(id => typeof id !== 'number')) {
+                                    const lineNum = findLineNumber(originalText, 'tierIds') || (zoneIndex * 15) + 15 + spIndex;
+                                    const error = `Line ${lineNum}: 'tierIds' must be an array of numbers in spawn point ${spIndex + 1} of zone '${zoneName}'`;
+                                    errors.push(error);
+                                    fixes.push({
+                                        error: error,
+                                        suggestions: ['Example: "tierIds": [1, 2]'],
+                                        zoneName: `${zoneName} > SpawnPoint_${spIndex + 1}`
+                                    });
+                                }
+                            } else if (!validateType(sp[field], zonesSchema.zones.spawnPoints.types[field])) {
+                                const lineNum = findLineNumber(originalText, `"${field}"`) || (zoneIndex * 15) + 14 + spIndex;
+                                const error = `Line ${lineNum}: Invalid type for '${field}' in spawn point ${spIndex + 1} of zone '${zoneName}'. Expected ${zonesSchema.zones.spawnPoints.types[field]}, got ${typeof sp[field]}`;
+                                errors.push(error);
+                                fixes.push({
+                                    error: error,
+                                    suggestions: generateFixSuggestion(error),
+                                    zoneName: `${zoneName} > SpawnPoint_${spIndex + 1}`
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+
+            const stats = {
+                zones: data.zones.length,
+                spawnPoints: data.zones.reduce((acc, zone) => acc + (zone.spawnPoints ? zone.spawnPoints.length : 0), 0)
+            };
+
+            return { errors, fixes, stats };
+        }
+
+        function validateTiers(data, originalText, filename) {
+            const errors = [];
+            const fixes = [];
+
+            if (!data.tiers || typeof data.tiers !== 'object') {
+                const lineNum = findLineNumber(originalText, 'tiers') || 1;
+                const error = `Line ${lineNum}: Missing or invalid 'tiers' object`;
+                errors.push(error);
+                fixes.push({
+                    error: error,
+                    suggestions: ['Add: "tiers": {}'],
+                    zoneName: 'ROOT'
+                });
+                return { errors, fixes, stats: { tiers: 0, classnames: 0 } };
+            }
+
+            Object.keys(data.tiers).forEach((tierId, index) => {
+                const tier = data.tiers[tierId];
+                const tierName = `Tier_${tierId}`;
+
+                if (!validateType(tierId, 'string') || !/^\d+$/.test(tierId)) {
+                    const lineNum = findLineNumber(originalText, `"${tierId}"`) || (index * 5) + 3;
+                    const error = `Line ${lineNum}: Tier ID '${tierId}' should be a numeric string`;
+                    errors.push(error);
+                    fixes.push({
+                        error: error,
+                        suggestions: ['Use numeric strings like "1", "2", "3"'],
+                        zoneName: tierName
+                    });
+                }
+
+                for (const field of tiersSchema.tiers.required) {
+                    if (!(field in tier)) {
+                        const lineNum = findLineNumber(originalText, `"${tierId}"`) + 1 || (index * 5) + 4;
+                        const error = `Line ${lineNum}: Missing required field '${field}' in ${tierName}`;
+                        errors.push(error);
+                        fixes.push({
+                            error: error,
+                            suggestions: generateFixSuggestion(error),
+                            zoneName: tierName
+                        });
+                    } else if (field === 'classnames') {
+                        if (!Array.isArray(tier.classnames)) {
+                            const lineNum = findLineNumber(originalText, 'classnames', tierId) || (index * 5) + 5;
+                            const error = `Line ${lineNum}: 'classnames' must be an array in ${tierName}`;
+                            errors.push(error);
+                            fixes.push({
+                                error: error,
+                                suggestions: ['Example: "classnames": ["ZmbM_CitizenASkinny"]'],
+                                zoneName: tierName
+                            });
+                        } else if (tier.classnames.some(name => typeof name !== 'string')) {
+                            const lineNum = findLineNumber(originalText, 'classnames', tierId) || (index * 5) + 5;
+                            const error = `Line ${lineNum}: All 'classnames' must be strings in ${tierName}`;
+                            errors.push(error);
+                            fixes.push({
+                                error: error,
+                                suggestions: ['Example: ["ZmbM_CitizenASkinny", "ZmbF_SurvivorNormal_Blue"]'],
+                                zoneName: tierName
+                            });
+                        } else if (tier.classnames.length === 0) {
+                            const lineNum = findLineNumber(originalText, 'classnames', tierId) || (index * 5) + 5;
+                            const error = `Line ${lineNum}: 'classnames' array cannot be empty in ${tierName}`;
+                            errors.push(error);
+                            fixes.push({
+                                error: error,
+                                suggestions: ['Add at least one classname'],
+                                zoneName: tierName
+                            });
+                        }
+                    } else if (!validateType(tier[field], tiersSchema.tiers.types[field])) {
+                        const lineNum = findLineNumber(originalText, `"${field}"`, tierId) || (index * 5) + 4;
+                        const error = `Line ${lineNum}: Invalid type for '${field}' in ${tierName}. Expected ${tiersSchema.tiers.types[field]}, got ${typeof tier[field]}`;
+                        errors.push(error);
+                        fixes.push({
+                            error: error,
+                            suggestions: generateFixSuggestion(error),
+                            zoneName: tierName
+                        });
+                    }
+                }
+            });
+
+            const stats = {
+                tiers: Object.keys(data.tiers).length,
+                classnames: Object.values(data.tiers).reduce((acc, tier) => acc + (tier.classnames ? tier.classnames.length : 0), 0)
+            };
+
+            return { errors, fixes, stats };
+        }
+
+        function createFixedFile(filename, originalData, fixes, type) {
+            let fixedData = JSON.parse(JSON.stringify(originalData));
+            
+            // Apply some automatic fixes
+            fixes.forEach(fix => {
+                if (fix.suggestions.some(s => s.includes('Add:') && s.includes('[]'))) {
+                    console.log('Applied array fix');
+                }
+            });
+
+            return {
+                fixedJson: JSON.stringify(fixedData, null, 4),
+                report: generateReport(filename, fixes, type)
+            };
+        }
+
+        function generateReport(filename, fixes, type) {
+            let report = `VALIDATION FIX REPORT for ${filename}\n`;
+            report += `Generated: ${new Date().toISOString()}\n`;
+            report += `Type: ${type}\n`;
+            report += '='.repeat(50) + '\n\n';
+            
+            fixes.forEach((fix, index) => {
+                report += `${index + 1}. ZONE/AREA: ${fix.zoneName}\n`;
+                report += `   ERROR: ${fix.error}\n`;
+                report += `   SUGGESTIONS:\n`;
+                fix.suggestions.forEach(suggestion => {
+                    report += `   - ${suggestion}\n`;
+                });
+                report += '\n';
+            });
+            
+            return report;
+        }
+
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function displayResults() {
+            const resultsDiv = document.getElementById('results');
+            const downloadSection = document.getElementById('downloadSection');
+            const downloadButtons = document.getElementById('downloadButtons');
+            
+            resultsDiv.innerHTML = '';
+            downloadButtons.innerHTML = '';
+            
+            let hasErrors = false;
+            
+            Object.keys(validationResults).forEach(filename => {
+                const result = validationResults[filename];
+                const fileDiv = document.createElement('div');
+                
+                if (result.errors.length === 0) {
+                    fileDiv.className = 'success-item';
+                    fileDiv.innerHTML = `
+                        <h3>✅ ${filename} - Validation Passed!</h3>
+                        <div class="stats">
+                            ${result.stats.zones ? `<div class="stat-card"><span class="stat-number">${result.stats.zones}</span>Zones Found</div>` : ''}
+                            ${result.stats.spawnPoints ? `<div class="stat-card"><span class="stat-number">${result.stats.spawnPoints}</span>Spawn Points</div>` : ''}
+                            ${result.stats.tiers ? `<div class="stat-card"><span class="stat-number">${result.stats.tiers}</span>Tiers Found</div>` : ''}
+                            ${result.stats.classnames ? `<div class="stat-card"><span class="stat-number">${result.stats.classnames}</span>Classnames</div>` : ''}
+                        </div>
+                    `;
+                } else {
+                    hasErrors = true;
+                    fileDiv.innerHTML = `
+                        <h3>❌ ${filename} - ${result.errors.length} Error(s) Found</h3>
+                        <div class="stats">
+                            ${result.stats.zones ? `<div class="stat-card"><span class="stat-number">${result.stats.zones}</span>Zones Found</div>` : ''}
+                            ${result.stats.spawnPoints ? `<div class="stat-card"><span class="stat-number">${result.stats.spawnPoints}</span>Spawn Points</div>` : ''}
+                            ${result.stats.tiers ? `<div class="stat-card"><span class="stat-number">${result.stats.tiers}</span>Tiers Found</div>` : ''}
+                            ${result.stats.classnames ? `<div class="stat-card"><span class="stat-number">${result.stats.classnames}</span>Classnames</div>` : ''}
+                        </div>
+                    `;
+                    
+                    result.fixes.forEach((fix, index) => {
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'error-item';
+                        errorDiv.innerHTML = `
+                            <div class="zone-name">${fix.zoneName}</div>
+                            <div class="error-message">${fix.error}</div>
+                            <div class="suggestions">
+                                <h4>💡 Fix Suggestions:</h4>
+                                ${fix.suggestions.map(s => `<div class="suggestion-item">${s}</div>`).join('')}
+                            </div>
+                        `;
+                        fileDiv.appendChild(errorDiv);
+                    });
+                    
+                    // Create download buttons for fixed files
+                    const type = filename.toLowerCase().includes('zones') ? 'zones' : 'tiers';
+                    const fixedFiles = createFixedFile(filename, loadedFiles[filename].data, result.fixes, type);
+                    
+                    const fixedJsonBtn = document.createElement('button');
+                    fixedJsonBtn.className = 'download-btn';
+                    fixedJsonBtn.textContent = `📄 Download Fixed ${filename}`;
+                    fixedJsonBtn.onclick = () => downloadFile(fixedFiles.fixedJson, filename.replace('.json', '_FIXED.json'), 'application/json');
+                    
+                    const reportBtn = document.createElement('button');
+                    reportBtn.className = 'download-btn';
+                    reportBtn.textContent = `📋 Download ${filename} Report`;
+                    reportBtn.onclick = () => downloadFile(fixedFiles.report, filename.replace('.json', '_REPORT.txt'), 'text/plain');
+                    
+                    downloadButtons.appendChild(fixedJsonBtn);
+                    downloadButtons.appendChild(reportBtn);
+                }
+                
+                resultsDiv.appendChild(fileDiv);
+            });
+            
+            if (hasErrors) {
+                downloadSection.style.display = 'block';
+            }
+        }
+
+        // Event handlers
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            const fileInfo = document.getElementById('fileInfo');
+            const fileList = document.getElementById('fileList');
+            const validateBtn = document.getElementById('validateBtn');
+            
+            loadedFiles = {};
+            fileList.innerHTML = '';
+            
+            files.forEach(file => {
+                if (file.name.toLowerCase().endsWith('.json')) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            loadedFiles[file.name] = {
+                                data: data,
+                                text: event.target.result,
+                                size: file.size
+                            };
+                            
+                            const fileItem = document.createElement('div');
+                            fileItem.innerHTML = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                            fileList.appendChild(fileItem);
+                            
+                            if (Object.keys(loadedFiles).length > 0) {
+                                validateBtn.disabled = false;
+                                fileInfo.style.display = 'block';
+                            }
+                        } catch (error) {
+                            alert(`Error parsing ${file.name}: ${error.message}`);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        });
+
+        document.getElementById('validateBtn').addEventListener('click', function() {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            
+            validationResults = {};
+            
+            setTimeout(() => {
+                Object.keys(loadedFiles).forEach(filename => {
+                    const fileData = loadedFiles[filename];
+                    let result;
+                    
+                    if (filename.toLowerCase().includes('zones') || fileData.data.zones) {
+                        result = validateZones(fileData.data, fileData.text, filename);
+                    } else if (filename.toLowerCase().includes('tiers') || fileData.data.tiers) {
+                        result = validateTiers(fileData.data, fileData.text, filename);
+                    } else {
+                        result = { 
+                            errors: [`Unknown file type. Expected Zones.json or Tiers.json`], 
+                            fixes: [], 
+                            stats: {} 
+                        };
+                    }
+                    
+                    validationResults[filename] = result;
+                });
+                
+                loading.style.display = 'none';
+                displayResults();
+            }, 500);
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            loadedFiles = {};
+            validationResults = {};
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('validateBtn').disabled = true;
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('downloadSection').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

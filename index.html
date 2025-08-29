@@ -408,8 +408,8 @@
                 return { valid: false, error: 'Position cannot be empty' };
             }
             
-            // Split by whitespace (spaces, tabs, etc.)
-            const coords = trimmed.split(/\s+/);
+            // Split by both whitespace and commas to extract coordinates
+            let coords = trimmed.split(/[\s,]+/).filter(coord => coord.length > 0);
             
             // Must have exactly 3 coordinates
             if (coords.length !== 3) {
@@ -420,21 +420,41 @@
                 };
             }
             
-            // Validate each coordinate individually
+            // Collect ALL coordinate errors
+            const allErrors = [];
+            const allSuggestions = [];
+            
+            // Validate each coordinate individually and collect errors
             for (let i = 0; i < coords.length; i++) {
                 const coord = coords[i];
                 const coordName = ['X', 'Y', 'Z'][i];
                 const validation = validateSingleCoordinate(coord, coordName);
                 
                 if (!validation.valid) {
-                    return {
-                        valid: false,
-                        error: `Invalid ${coordName} coordinate: ${validation.error}`,
-                        suggestion: validation.suggestion,
-                        coordinate: coordName,
-                        value: coord
-                    };
+                    allErrors.push(`${coordName}: ${validation.error}`);
+                    if (validation.suggestion) {
+                        allSuggestions.push(`${coordName}: ${validation.suggestion}`);
+                    }
                 }
+            }
+            
+            // If we found coordinate errors, return them all
+            if (allErrors.length > 0) {
+                return {
+                    valid: false,
+                    error: `Multiple coordinate errors - ${allErrors.join(', ')}`,
+                    suggestion: allSuggestions.join(', '),
+                    multipleErrors: true
+                };
+            }
+            
+            // After validating coordinates, check if wrong separators were used
+            if (trimmed.includes(',')) {
+                return {
+                    valid: false,
+                    error: 'Coordinates are separated by commas instead of spaces',
+                    suggestion: `Change "${trimmed}" to use spaces: "${trimmed.replace(/,\s*/g, ' ')}"`
+                };
             }
             
             return { valid: true };
